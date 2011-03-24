@@ -32,10 +32,14 @@ class RedisSessionStore < ActionController::Session::AbstractStore
   end
 
   private
+    def destroy(env)
+      @redis.del prefixed(env['rack.request.cookie_hash'][@key])
+    end
+
     def prefixed(sid)
       "#{@default_options[:key_prefix]}#{sid}"
     end
-    
+
     def get_session(env, sid)
       sid ||= generate_sid
       begin
@@ -49,16 +53,14 @@ class RedisSessionStore < ActionController::Session::AbstractStore
 
     def set_session(env, sid, session_data)
       options = env['rack.session.options']
-      expiry  = options[:expire_after] || nil
-      
-      @redis.pipelined do
-        @redis.set(prefixed(sid), Marshal.dump(session_data))
-        @redis.expire(prefixed(sid), expiry) if expiry
-      end
-        
+      expiry  = options[:expire_after] || options[:expire_redis_after] || nil
+
+      @redis.set(prefixed(sid), Marshal.dump(session_data))
+      @redis.expire(prefixed(sid), expiry) if expiry
+
       return true
     rescue Errno::ECONNREFUSED
       return false
     end
-  
 end
+
