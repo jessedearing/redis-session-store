@@ -33,7 +33,7 @@ class RedisSessionStore < ActionController::Session::AbstractStore
 
   private
     def destroy(env)
-      @redis.del prefixed(env['rack.request.cookie_hash'][@key])
+      @redis.del prefixed(env['rack.request.cookie_hash'][@key]) unless env['rack.request.cookie_hash'].nil?
     end
 
     def prefixed(sid)
